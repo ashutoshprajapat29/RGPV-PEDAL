@@ -62,7 +62,7 @@ export async function PUT(req: NextRequest) {
 
       if (currentPassword !== currentSettings.adminPassword) {
         return NextResponse.json(
-          { error: "Current password does not match. (Default initial password is 'rgpvadmin@2026')." },
+          { error: "Current password does not match. Please verify your current password." },
           { status: 400 }
         );
       }

@@ -372,7 +372,7 @@ export default function AdminPage() {
                 <User className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
-                  placeholder="admin"
+                  placeholder="Enter your User ID"
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-neutral-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -396,9 +396,6 @@ export default function AdminPage() {
                   required
                 />
               </div>
-              <p className="text-[11px] text-neutral-400 mt-1">
-                Default: User ID: <code className="bg-neutral-100 px-1 py-0.5 rounded font-mono">admin</code> | Password: <code className="bg-neutral-100 px-1 py-0.5 rounded font-mono">rgpvadmin@2026</code>
-              </p>
             </div>
 
             {loginError && (
@@ -1006,7 +1003,7 @@ export default function AdminPage() {
                 {/* Current Password */}
                 <div className="pt-2 border-t border-neutral-100">
                   <label className="block font-bold text-neutral-700 mb-1">
-                    Current Password <span className="font-normal text-neutral-400">(Default: rgpvadmin@2026)</span>
+                    Current Password
                   </label>
                   <input
                     type="password"

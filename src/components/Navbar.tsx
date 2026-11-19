@@ -2,12 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bike, Calendar, Menu, X, MessageSquare } from "lucide-react";
 
-export default function Navbar() {
+export default function Navbar({ initialPhone }: { initialPhone?: string }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [whatsappPhone, setWhatsappPhone] = useState(
+    (initialPhone || process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "919876543210").replace(/\D/g, "")
+  );
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.whatsappPhone) {
+          setWhatsappPhone(data.whatsappPhone.replace(/\D/g, ""));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/95 backdrop-blur-md transition-all">
@@ -64,7 +78,7 @@ export default function Navbar() {
           {/* Quick WhatsApp Help Pill */}
           <div className="hidden md:flex items-center">
             <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "919876543210"}?text=${encodeURIComponent("Hello! I have a question about renting a bicycle at RGPV Bhopal.")}`}
+              href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent("Hello! I have a question about renting a bicycle at RGPV Bhopal.")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs flex items-center gap-1.5 border border-emerald-200 transition-colors"
@@ -113,7 +127,7 @@ export default function Navbar() {
           </Link>
           <div className="pt-2 border-t border-neutral-100">
             <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "919876543210"}?text=${encodeURIComponent("Hello! I want to rent a bicycle at RGPV Bhopal.")}`}
+              href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent("Hello! I want to rent a bicycle at RGPV Bhopal.")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center w-full px-3 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold text-xs gap-1.5"

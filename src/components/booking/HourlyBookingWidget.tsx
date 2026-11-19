@@ -20,7 +20,13 @@ interface BikeDetails {
   status: string;
 }
 
-export default function HourlyBookingWidget({ bike }: { bike: BikeDetails }) {
+export default function HourlyBookingWidget({
+  bike,
+  whatsappPhone,
+}: {
+  bike: BikeDetails;
+  whatsappPhone?: string;
+}) {
   const router = useRouter();
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -37,7 +43,9 @@ export default function HourlyBookingWidget({ bike }: { bike: BikeDetails }) {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [studentRollNo, setStudentRollNo] = useState("");
-  const [ownerWhatsApp, setOwnerWhatsApp] = useState("919876543210");
+  const [ownerWhatsApp, setOwnerWhatsApp] = useState(
+    whatsappPhone ? whatsappPhone.replace(/\D/g, "") : "919876543210"
+  );
 
   // Field-level error messages
   const [nameError, setNameError] = useState<string | null>(null);

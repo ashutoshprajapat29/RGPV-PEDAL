@@ -2,14 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAppSettings } from "@/lib/settings";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const settings = await getAppSettings();
-    return NextResponse.json({
-      whatsappPhone: settings.whatsappPhone,
-      campusName: settings.campusName,
-      adminUsername: settings.adminUsername,
-    });
+    return NextResponse.json(
+      {
+        whatsappPhone: settings.whatsappPhone,
+        campusName: settings.campusName,
+        adminUsername: settings.adminUsername,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json({ error: "Failed to load settings" }, { status: 500 });
   }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getAppSettings } from "@/lib/settings";
 import BikeGallery from "@/components/gallery/BikeGallery";
 import HourlyBookingWidget from "@/components/booking/HourlyBookingWidget";
 import {
@@ -17,14 +18,17 @@ export default async function BikeDetailPage({
 }) {
   const { id } = await params;
 
-  const bike = await prisma.bike.findUnique({
-    where: { id },
-    include: {
-      images: {
-        orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+  const [bike, settings] = await Promise.all([
+    prisma.bike.findUnique({
+      where: { id },
+      include: {
+        images: {
+          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+        },
       },
-    },
-  });
+    }),
+    getAppSettings(),
+  ]);
 
   if (!bike) {
     notFound();
@@ -152,6 +156,7 @@ export default async function BikeDetailPage({
                 location: bike.location,
                 status: bike.status,
               }}
+              whatsappPhone={settings.whatsappPhone}
             />
           </div>
         </div>

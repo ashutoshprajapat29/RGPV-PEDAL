@@ -2,24 +2,28 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { getAppSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
-  title: "VelocitiRent - Hourly Bicycle Rental & Fleet Management",
+  title: "RGPV Pedal - Campus Bicycle Rental",
   description:
-    "Rent premium bicycles on an hourly basis. Dedicated owner platform for multi-angle bicycle image uploads, hourly booking calendar, and contactless dock check-ins.",
+    "Affordable hourly bicycle rentals for students, faculty, and visitors at RGPV Bhopal campus.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const settings = await getAppSettings();
+  const whatsappPhone = settings?.whatsappPhone || "919876543210";
+
   return (
     <html lang="en" className="h-full antialiased scroll-smooth">
       <body className="min-h-full flex flex-col bg-neutral-50 text-neutral-900 font-sans">
-        <Navbar />
+        <Navbar initialPhone={whatsappPhone} />
         <main className="flex-1">{children}</main>
-        <Footer />
+        <Footer initialPhone={whatsappPhone} />
       </body>
     </html>
   );

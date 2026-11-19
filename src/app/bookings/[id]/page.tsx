@@ -26,6 +26,20 @@ export default function BookingPassPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeLeftStr, setTimeLeftStr] = useState<string>("");
+  const [ownerWhatsApp, setOwnerWhatsApp] = useState(
+    (process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "919876543210").replace(/\D/g, "")
+  );
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.whatsappPhone) {
+          setOwnerWhatsApp(data.whatsappPhone.replace(/\D/g, ""));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function fetchBooking() {
@@ -106,7 +120,6 @@ export default function BookingPassPage({
   const primaryImage =
     booking.bike?.images?.find((img: any) => img.isPrimary) || booking.bike?.images?.[0];
 
-  const ownerWhatsApp = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "919876543210";
   const waHelpUrl = `https://wa.me/${ownerWhatsApp}?text=${encodeURIComponent(`Hello! Regarding my RGPV cycle booking (${booking.bookingNumber}) for ${booking.bike?.name}.`)}`;
 
   return (

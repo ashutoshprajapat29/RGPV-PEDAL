@@ -1,7 +1,24 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bike, MapPin, MessageSquare, Phone } from "lucide-react";
 
-export default function Footer() {
+export default function Footer({ initialPhone }: { initialPhone?: string }) {
+  const [whatsappPhone, setWhatsappPhone] = useState(
+    (initialPhone || process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "919876543210").replace(/\D/g, "")
+  );
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.whatsappPhone) {
+          setWhatsappPhone(data.whatsappPhone.replace(/\D/g, ""));
+        }
+      })
+      .catch(() => {});
+  }, []);
   return (
     <footer className="bg-neutral-900 text-neutral-400 border-t border-neutral-800 text-xs">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
@@ -53,7 +70,7 @@ export default function Footer() {
               Pay easily at the pickup stand using <strong>UPI (PhonePe, Google Pay, Paytm)</strong> or <strong>Cash</strong>. Book directly on WhatsApp for instant confirmation.
             </p>
             <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "919876543210"}?text=${encodeURIComponent("Hello! I need assistance with a cycle rental at RGPV Bhopal.")}`}
+              href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent("Hello! I need assistance with a cycle rental at RGPV Bhopal.")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-semibold transition-colors"

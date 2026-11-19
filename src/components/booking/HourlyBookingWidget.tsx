@@ -169,8 +169,8 @@ export default function HourlyBookingWidget({
     setIsSubmitting(true);
 
     try {
-      const startDateTime = new Date(`${selectedDate}T${String(startHour).padStart(2, "0")}:00:00`);
-      const endDateTime = new Date(`${selectedDate}T${String(endHour).padStart(2, "0")}:00:00`);
+      const startDateTime = new Date(`${selectedDate}T${String(startHour).padStart(2, "0")}:00:00+05:30`);
+      const endDateTime = new Date(`${selectedDate}T${String(endHour).padStart(2, "0")}:00:00+05:30`);
 
       const res = await fetch("/api/bookings", {
         method: "POST",
@@ -202,8 +202,9 @@ export default function HourlyBookingWidget({
         return `${dh}:00 ${p}`;
       };
 
-      const waMessage = `🚲 *RGPV Campus Bicycle Booking*
+      const waMessage = `🚲 *RGPV Campus Bicycle Booking Request*
 ---------------------------------------
+• *Status:* ⏳ Pending Stand Confirmation
 • *Bicycle:* ${bike.name}
 • *Booking Code:* ${bookingNumber}
 • *Student Name:* ${trimmedName}
@@ -215,7 +216,7 @@ export default function HourlyBookingWidget({
 • *Total Due at Stand:* ₹${grandTotal} (UPI / Cash)
 • *Pickup Stand:* ${bike.location}
 
-Please confirm cycle availability. Thank you!`;
+Please confirm cycle availability for this booking. Thank you!`;
 
       const waUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(waMessage)}`;
       window.open(waUrl, "_blank");

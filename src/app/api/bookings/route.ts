@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -30,10 +33,17 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: { startTime: "desc" },
+      orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ bookings });
+    return NextResponse.json(
+      { bookings },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        },
+      }
+    );
   } catch (error) {
     console.error("Fetch bookings error:", error);
     return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
@@ -123,19 +133,28 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Strict Overlap Collision Check
+    // Checks both confirmed/active bookings AND fresh pending requests (<30 min)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
     const existingConflict = await prisma.booking.findFirst({
       where: {
         bikeId,
-        status: { in: ["CONFIRMED", "ACTIVE"] },
         startTime: { lt: end },
         endTime: { gt: start },
+        OR: [
+          { status: { in: ["CONFIRMED", "ACTIVE"] } },
+          {
+            status: "PENDING",
+            createdAt: { gte: thirtyMinutesAgo },
+          },
+        ],
       },
     });
 
     if (existingConflict) {
       return NextResponse.json(
         {
-          error: "Selected cycle is already booked for this timing. Please choose a different hour or another cycle.",
+          error: "Selected cycle is already reserved for this timing. Please choose a different hour or another cycle.",
         },
         { status: 409 }
       );
@@ -150,6 +169,7 @@ export async function POST(req: NextRequest) {
 
     const bookingNumber = `BK-${Math.floor(100000 + Math.random() * 900000)}`;
 
+    // Bookings created via WhatsApp are initiated as PENDING until stand manager confirms
     const booking = await prisma.booking.create({
       data: {
         bookingNumber,
@@ -164,7 +184,7 @@ export async function POST(req: NextRequest) {
         addonsAmount: extraAddons,
         securityDeposit: deposit,
         totalAmount,
-        status: "CONFIRMED",
+        status: "PENDING", // PENDING -> CONFIRMED -> ACTIVE -> COMPLETED (or CANCELLED)
         paymentMethod: paymentMethod || "UPI_AT_STAND",
         paymentStatus: "PENDING",
         pickupNotes: pickupNotes ? String(pickupNotes).slice(0, 200) : null,
@@ -178,7 +198,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, booking }, { status: 201 });
+    return NextResponse.json(
+      { success: true, booking },
+      {
+        status: 201,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        },
+      }
+    );
   } catch (error) {
     console.error("Create booking error:", error);
     return NextResponse.json({ error: "Failed to process booking." }, { status: 500 });

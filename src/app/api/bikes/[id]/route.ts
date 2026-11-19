@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -32,7 +35,14 @@ export async function GET(
       return NextResponse.json({ error: "Bicycle not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ bike });
+    return NextResponse.json(
+      { bike },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        },
+      }
+    );
   } catch (error) {
     console.error("Failed to fetch bike details:", error);
     return NextResponse.json({ error: "Failed to fetch bicycle details" }, { status: 500 });

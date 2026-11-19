@@ -40,6 +40,7 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [bookingFilter, setBookingFilter] = useState("ALL");
 
   // Inline Quick Price Editing State
   const [editingPriceBikeId, setEditingPriceBikeId] = useState<string | null>(null);
@@ -231,27 +232,53 @@ export default function AdminPage() {
     }
   };
 
-  const handleCheckInBooking = async (bookingId: string) => {
-    const returnNotes = prompt("Enter return condition notes:", "Returned in good condition. Deposit released.");
-    if (returnNotes === null) return;
-
+  const handleUpdateBookingStatus = async (
+    bookingId: string,
+    newStatus: string,
+    additionalData: any = {}
+  ) => {
     try {
       const res = await fetch(`/api/bookings/${bookingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: "COMPLETED",
-          paymentStatus: "PAID",
-          returnNotes,
+          status: newStatus,
+          ...additionalData,
         }),
       });
       if (res.ok) {
-        alert("Bicycle returned and checked in successfully! Deposit released.");
-        loadData();
+        await loadData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to update booking status.");
       }
     } catch {
-      alert("Failed to complete check-in.");
+      alert("Error updating booking status.");
     }
+  };
+
+  const handleConfirmBooking = async (id: string, name: string) => {
+    if (confirm(`Approve and confirm booking for ${name}? This will reserve the cycle for the student.`)) {
+      await handleUpdateBookingStatus(id, "CONFIRMED");
+    }
+  };
+
+  const handleHandoverRide = async (id: string, name: string) => {
+    if (confirm(`Handover bicycle to ${name}? This marks payment as received and starts the active ride.`)) {
+      await handleUpdateBookingStatus(id, "ACTIVE", { paymentStatus: "PAID" });
+    }
+  };
+
+  const handleCancelBooking = async (id: string, name: string) => {
+    const reason = prompt(`Enter cancellation reason for ${name}:`, "Cancelled by stand manager / Unavailable");
+    if (reason === null) return;
+    await handleUpdateBookingStatus(id, "CANCELLED", { returnNotes: reason });
+  };
+
+  const handleCheckInBooking = async (bookingId: string) => {
+    const returnNotes = prompt("Enter return condition notes:", "Returned in good condition. Deposit released.");
+    if (returnNotes === null) return;
+    await handleUpdateBookingStatus(bookingId, "COMPLETED", { paymentStatus: "PAID", returnNotes });
   };
 
   // Save WhatsApp Phone Number independently
@@ -428,7 +455,16 @@ export default function AdminPage() {
 
   const totalBikes = bikes.length;
   const availableBikes = bikes.filter((b) => b.status === "AVAILABLE").length;
-  const activeRentals = bookings.filter((b) => b.status === "ACTIVE" || b.status === "CONFIRMED").length;
+  const pendingBookings = bookings.filter((b) => b.status === "PENDING");
+  const confirmedBookings = bookings.filter((b) => b.status === "CONFIRMED");
+  const activeBookings = bookings.filter((b) => b.status === "ACTIVE");
+  const completedBookings = bookings.filter((b) => b.status === "COMPLETED");
+  const cancelledBookings = bookings.filter((b) => b.status === "CANCELLED");
+
+  const filteredBookings = bookings.filter((b) => {
+    if (bookingFilter === "ALL") return true;
+    return b.status === bookingFilter;
+  });
 
   return (
     <div className="min-h-screen bg-neutral-100/60 pb-16">
@@ -500,11 +536,16 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab("returns")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeTab === "returns" ? "bg-white text-neutral-900" : "text-neutral-400 hover:text-white"
               }`}
             >
-              Active Bookings & Returns ({activeRentals})
+              <span>Bookings & Stand Returns ({bookings.length})</span>
+              {pendingBookings.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-neutral-950 text-[10px] font-black animate-pulse">
+                  {pendingBookings.length} pending
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab("settings")}
@@ -521,7 +562,7 @@ export default function AdminPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-6 space-y-6">
         {/* KPI Mini-Cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white p-3.5 rounded-2xl border border-neutral-200/80 shadow-sm flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Bike className="w-4 h-4" />
@@ -543,12 +584,28 @@ export default function AdminPage() {
           </div>
 
           <div className="bg-white p-3.5 rounded-2xl border border-neutral-200/80 shadow-sm flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-neutral-400">On Campus Road</span>
-              <p className="text-base font-black text-neutral-900">{activeRentals}</p>
+              <p className="text-base font-black text-neutral-900">{activeBookings.length}</p>
+            </div>
+          </div>
+
+          <div className={`p-3.5 rounded-2xl border shadow-sm flex items-center gap-3 transition-colors ${
+            pendingBookings.length > 0 ? "bg-amber-50 border-amber-300" : "bg-white border-neutral-200/80"
+          }`}>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              pendingBookings.length > 0 ? "bg-amber-400 text-neutral-950" : "bg-neutral-100 text-neutral-400"
+            }`}>
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-neutral-500">Pending Approval</span>
+              <p className={`text-base font-black ${pendingBookings.length > 0 ? "text-amber-900" : "text-neutral-900"}`}>
+                {pendingBookings.length}
+              </p>
             </div>
           </div>
         </div>
@@ -744,16 +801,32 @@ export default function AdminPage() {
         {/* TAB 2: SCHEDULE */}
         {activeTab === "schedule" && (
           <div className="bg-white rounded-3xl border border-neutral-200/80 shadow-sm p-5 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-extrabold text-neutral-900 text-sm">
-                24-Hour Rental Schedule
-              </h3>
-              <input
-                type="date"
-                value={scheduleDate}
-                onChange={(e) => setScheduleDate(e.target.value)}
-                className="px-2.5 py-1 rounded-xl border border-neutral-300 text-xs font-semibold"
-              />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 gap-2">
+              <div>
+                <h3 className="font-extrabold text-neutral-900 text-sm">
+                  24-Hour Campus Rental Schedule
+                </h3>
+                <p className="text-[11px] text-neutral-400">
+                  Visual timeline of all cycle reservations across hours (IST).
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Legend */}
+                <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-neutral-500">
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600"></span> On Road</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-emerald-600"></span> Confirmed</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-amber-300 border border-amber-400"></span> Pending</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-neutral-100"></span> Free</span>
+                </div>
+
+                <input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  className="px-2.5 py-1 rounded-xl border border-neutral-300 text-xs font-semibold"
+                />
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -766,9 +839,13 @@ export default function AdminPage() {
                 </div>
 
                 {bikes.map((bike) => {
+                  const dayStart = new Date(`${scheduleDate}T00:00:00+05:30`).getTime();
+                  const dayEnd = new Date(`${scheduleDate}T23:59:59.999+05:30`).getTime();
                   const bikeBookings = bookings.filter((b) => {
                     if (b.bikeId !== bike.id || b.status === "CANCELLED") return false;
-                    return new Date(b.startTime).toISOString().split("T")[0] === scheduleDate;
+                    const bStart = new Date(b.startTime).getTime();
+                    const bEnd = new Date(b.endTime).getTime();
+                    return bStart <= dayEnd && bEnd >= dayStart;
                   });
 
                   return (
@@ -776,28 +853,45 @@ export default function AdminPage() {
                       key={bike.id}
                       className="grid grid-cols-[180px_repeat(15,1fr)] gap-1 items-center py-1.5 border-b border-neutral-100 text-xs"
                     >
-                      <div className="font-bold text-neutral-800 truncate pr-2">
+                      <div className="font-bold text-neutral-800 truncate pr-2" title={bike.name}>
                         {bike.name}
                       </div>
 
                       {Array.from({ length: 15 }, (_, i) => i + 7).map((hour) => {
-                        const slotStart = new Date(`${scheduleDate}T${String(hour).padStart(2, "0")}:00:00`);
-                        const slotEnd = new Date(`${scheduleDate}T${String(hour + 1).padStart(2, "0")}:00:00`);
+                        const slotStart = new Date(`${scheduleDate}T${String(hour).padStart(2, "0")}:00:00+05:30`).getTime();
+                        const slotEnd = new Date(`${scheduleDate}T${String(hour + 1).padStart(2, "0")}:00:00+05:30`).getTime();
 
-                        const isBooked = bikeBookings.some((b) => {
-                          const bStart = new Date(b.startTime);
-                          const bEnd = new Date(b.endTime);
+                        const activeMatch = bikeBookings.find((b) => {
+                          const bStart = new Date(b.startTime).getTime();
+                          const bEnd = new Date(b.endTime).getTime();
                           return bStart < slotEnd && bEnd > slotStart;
                         });
 
                         return (
                           <div
                             key={hour}
-                            className={`h-6 rounded text-[8px] font-bold flex items-center justify-center ${
-                              isBooked ? "bg-amber-400 text-neutral-950" : "bg-neutral-100 text-neutral-300"
+                            title={activeMatch ? `${activeMatch.customerName} (${activeMatch.status}) · ${activeMatch.bookingNumber}` : `${hour}:00 Available`}
+                            className={`h-6 rounded text-[8px] font-bold flex items-center justify-center transition-colors ${
+                              !activeMatch
+                                ? "bg-neutral-100 text-neutral-300"
+                                : activeMatch.status === "ACTIVE"
+                                ? "bg-blue-600 text-white shadow-sm"
+                                : activeMatch.status === "CONFIRMED"
+                                ? "bg-emerald-600 text-white shadow-sm"
+                                : activeMatch.status === "PENDING"
+                                ? "bg-amber-300 text-amber-950 border border-amber-400 font-extrabold"
+                                : "bg-neutral-400 text-white"
                             }`}
                           >
-                            {isBooked ? "Booked" : ""}
+                            {!activeMatch
+                              ? ""
+                              : activeMatch.status === "ACTIVE"
+                              ? "Ride"
+                              : activeMatch.status === "CONFIRMED"
+                              ? "Booked"
+                              : activeMatch.status === "PENDING"
+                              ? "Pending"
+                              : "Done"}
                           </div>
                         );
                       })}
@@ -812,9 +906,71 @@ export default function AdminPage() {
         {/* TAB 3: BOOKINGS & RETURNS */}
         {activeTab === "returns" && (
           <div className="bg-white rounded-3xl border border-neutral-200/80 shadow-sm p-5 space-y-4">
-            <h3 className="font-extrabold text-neutral-900 text-sm">
-              Student Bookings & Cycle Stand Returns
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 gap-3">
+              <div>
+                <h3 className="font-extrabold text-neutral-900 text-sm">
+                  Student Bookings & Cycle Stand Returns
+                </h3>
+                <p className="text-[11px] text-neutral-500">
+                  Approve incoming WhatsApp requests, handover cycles for active rides, and check in returned bicycles.
+                </p>
+              </div>
+
+              {/* Status Filters */}
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <button
+                  onClick={() => setBookingFilter("ALL")}
+                  className={`px-3 py-1 rounded-xl font-bold transition-colors ${
+                    bookingFilter === "ALL" ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  }`}
+                >
+                  All ({bookings.length})
+                </button>
+                <button
+                  onClick={() => setBookingFilter("PENDING")}
+                  className={`px-3 py-1 rounded-xl font-bold flex items-center gap-1 transition-colors ${
+                    bookingFilter === "PENDING"
+                      ? "bg-amber-500 text-white"
+                      : "bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
+                  }`}
+                >
+                  <span>Pending ({pendingBookings.length})</span>
+                  {pendingBookings.length > 0 && <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>}
+                </button>
+                <button
+                  onClick={() => setBookingFilter("CONFIRMED")}
+                  className={`px-3 py-1 rounded-xl font-bold transition-colors ${
+                    bookingFilter === "CONFIRMED" ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                  }`}
+                >
+                  Confirmed ({confirmedBookings.length})
+                </button>
+                <button
+                  onClick={() => setBookingFilter("ACTIVE")}
+                  className={`px-3 py-1 rounded-xl font-bold transition-colors ${
+                    bookingFilter === "ACTIVE" ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  }`}
+                >
+                  On Road ({activeBookings.length})
+                </button>
+                <button
+                  onClick={() => setBookingFilter("COMPLETED")}
+                  className={`px-3 py-1 rounded-xl font-bold transition-colors ${
+                    bookingFilter === "COMPLETED" ? "bg-neutral-700 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  }`}
+                >
+                  Completed ({completedBookings.length})
+                </button>
+                <button
+                  onClick={() => setBookingFilter("CANCELLED")}
+                  className={`px-3 py-1 rounded-xl font-bold transition-colors ${
+                    bookingFilter === "CANCELLED" ? "bg-red-600 text-white" : "bg-red-50 text-red-700 hover:bg-red-100"
+                  }`}
+                >
+                  Cancelled ({cancelledBookings.length})
+                </button>
+              </div>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -830,53 +986,134 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
-                  {bookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-neutral-50">
-                      <td className="py-3 px-3 font-mono font-bold text-neutral-900">
-                        {b.bookingNumber}
-                      </td>
-                      <td className="py-3 px-3">
-                        <p className="font-bold text-neutral-900">{b.customerName}</p>
-                        <p className="text-[10px] text-neutral-500">{b.customerPhone}</p>
-                      </td>
-                      <td className="py-3 px-3 font-semibold text-neutral-800">
-                        {b.bike?.name}
-                      </td>
-                      <td className="py-3 px-3 text-neutral-600">
-                        {new Date(b.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                        {new Date(b.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} ({b.totalHours} hrs)
-                      </td>
-                      <td className="py-3 px-3 font-bold text-neutral-900">
-                        ₹{b.totalAmount.toFixed(0)}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <a
-                            href={`https://wa.me/91${b.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello ${b.customerName}, regarding your RGPV bicycle booking ${b.bookingNumber}...`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold"
-                            title="WhatsApp this student"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </a>
-                          {b.status !== "COMPLETED" && (
-                            <button
-                              onClick={() => handleCheckInBooking(b.id)}
-                              className="px-2.5 py-1 rounded-xl bg-neutral-900 hover:bg-emerald-600 text-white font-bold text-[11px]"
-                            >
-                              Check-In
-                            </button>
-                          )}
-                        </div>
+                  {filteredBookings.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-neutral-400">
+                        No bookings found matching this filter.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredBookings.map((b) => (
+                      <tr key={b.id} className="hover:bg-neutral-50/80 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-neutral-900">
+                          {b.bookingNumber}
+                        </td>
+                        <td className="py-3 px-3">
+                          <p className="font-bold text-neutral-900">{b.customerName}</p>
+                          <p className="text-[10px] text-neutral-500">{b.customerPhone}</p>
+                        </td>
+                        <td className="py-3 px-3">
+                          <p className="font-semibold text-neutral-800">{b.bike?.name}</p>
+                          <p className="text-[10px] text-neutral-400">{b.bike?.location}</p>
+                        </td>
+                        <td className="py-3 px-3 text-neutral-600">
+                          <p className="font-semibold text-neutral-800">
+                            {new Date(b.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
+                            {new Date(b.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                          <p className="text-[10px] text-neutral-400">
+                            {new Date(b.startTime).toLocaleDateString([], { month: "short", day: "numeric" })} ({b.totalHours} hrs)
+                          </p>
+                        </td>
+                        <td className="py-3 px-3">
+                          <p className="font-black text-neutral-900">₹{b.totalAmount.toFixed(0)}</p>
+                          <p className="text-[10px] text-neutral-500 font-semibold">
+                            {b.paymentStatus === "PAID" ? "Paid ✓" : "Due at stand"}
+                          </p>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              b.status === "PENDING"
+                                ? "bg-amber-100 text-amber-900 border border-amber-300"
+                                : b.status === "CONFIRMED"
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                : b.status === "ACTIVE"
+                                ? "bg-blue-100 text-blue-800 border border-blue-200"
+                                : b.status === "CANCELLED"
+                                ? "bg-red-100 text-red-800 border border-red-200"
+                                : "bg-neutral-100 text-neutral-700"
+                            }`}
+                          >
+                            {b.status === "PENDING"
+                              ? "Pending"
+                              : b.status === "CONFIRMED"
+                              ? "Confirmed"
+                              : b.status === "ACTIVE"
+                              ? "On Road"
+                              : b.status === "COMPLETED"
+                              ? "Completed"
+                              : "Cancelled"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            {/* WhatsApp link to chat directly with student */}
+                            <a
+                              href={`https://wa.me/91${b.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello ${b.customerName}, regarding your RGPV bicycle booking ${b.bookingNumber} for ${b.bike?.name}...`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold transition-colors"
+                              title="WhatsApp this student"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </a>
+
+                            {/* PENDING Actions: Approve / Confirm OR Decline */}
+                            {b.status === "PENDING" && (
+                              <>
+                                <button
+                                  onClick={() => handleConfirmBooking(b.id, b.customerName)}
+                                  className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-sm transition-colors"
+                                  title="Approve booking and reserve cycle"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleCancelBooking(b.id, b.customerName)}
+                                  className="px-2 py-1 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-[11px] border border-red-200 transition-colors"
+                                  title="Decline request"
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            )}
+
+                            {/* CONFIRMED Actions: Handover (Start Ride) OR Cancel */}
+                            {b.status === "CONFIRMED" && (
+                              <>
+                                <button
+                                  onClick={() => handleHandoverRide(b.id, b.customerName)}
+                                  className="px-2.5 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-sm transition-colors"
+                                  title="Student arrived, paid, and collected cycle"
+                                >
+                                  Handover
+                                </button>
+                                <button
+                                  onClick={() => handleCancelBooking(b.id, b.customerName)}
+                                  className="px-2 py-1 rounded-xl bg-neutral-100 hover:bg-red-50 text-neutral-600 hover:text-red-700 font-bold text-[11px] transition-colors"
+                                  title="Cancel reservation"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+
+                            {/* ACTIVE Actions: Check-In (Return Cycle) */}
+                            {b.status === "ACTIVE" && (
+                              <button
+                                onClick={() => handleCheckInBooking(b.id)}
+                                className="px-2.5 py-1 rounded-xl bg-neutral-900 hover:bg-emerald-600 text-white font-bold text-[11px] shadow-sm transition-colors"
+                                title="Check in returned cycle & release deposit"
+                              >
+                                Check-In
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

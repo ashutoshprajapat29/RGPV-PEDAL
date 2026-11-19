@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppSettings } from "@/lib/settings";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function POST(req: NextRequest) {
   try {
     const { username, password } = await req.json();
@@ -31,10 +34,15 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get("admin_token");
-  if (token && token.value === "authenticated_admin") {
-    return NextResponse.json({ authenticated: true });
-  }
-  return NextResponse.json({ authenticated: false });
+  const isAuthenticated = token?.value === "authenticated_admin";
+  return NextResponse.json(
+    { authenticated: isAuthenticated },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+      },
+    }
+  );
 }
 
 export async function DELETE() {

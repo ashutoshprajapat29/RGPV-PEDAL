@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Bike {
+  id              String       @id @default(uuid())
+  name            String
+  brand           String
+  model           String
+  type            String       // Mountain, Road, City, Electric, Hybrid, Cruiser
+  frameSize       String       // S, M, L, XL
+  gearCount       Int          @default(1)
+  isElectric      Boolean      @default(false)
+  batteryRangeKm  Int?
+  hourlyRate      Float
+  securityDeposit Float        @default(0.0)
+  status          String       @default("AVAILABLE") // AVAILABLE, RENTED, MAINTENANCE, RETIRED
+  description     String
+  location        String       @default("RGPV Main Gate Cycle Stand")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  images          BikeImage[]
+  bookings        Booking[]
+}
+
+model BikeImage {
+  id        String   @id @default(uuid())
+  bikeId    String
+  bike      Bike     @relation(fields: [bikeId], references: [id], onDelete: Cascade)
+  url       String
+  isPrimary Boolean  @default(false)
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Booking {
+  id                 String       @id @default(uuid())
+  bookingNumber      String       @unique
+  bikeId             String
+  bike               Bike         @relation(fields: [bikeId], references: [id])
+  customerName       String
+  customerEmail      String
+  customerPhone      String
+  startTime          DateTime
+  endTime            DateTime
+  totalHours         Float
+  hourlyRateApplied  Float
+  addonsAmount       Float        @default(0.0)
+  securityDeposit    Float        @default(0.0)
+  totalAmount        Float
+  status             String       @default("CONFIRMED") // CONFIRMED, ACTIVE, COMPLETED, CANCELLED
+  paymentMethod      String       @default("UPI_AT_STAND")
+  paymentStatus      String       @default("PENDING") // PENDING, PAID, REFUNDED
+  pickupNotes        String?
+  returnNotes        String?
+  actualReturnTime   DateTime?
+  addons             String?      // JSON string of selected add-on names/prices
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model AppSetting {
+  id             String   @id @default("default")
+  adminUsername  String   @default("admin")
+  adminPassword  String   @default("rgpvadmin@2026")
+  whatsappPhone  String   @default("919876543210")
+  campusName     String   @default("RGPV Bhopal")
+  updatedAt      DateTime @updatedAt
+}

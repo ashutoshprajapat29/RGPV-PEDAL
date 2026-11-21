@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { supabase } from "@/lib/supabase";
+import sharp from "sharp";
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,24 +41,38 @@ export async function POST(req: NextRequest) {
       }
 
       const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+      const rawBuffer = Buffer.from(bytes);
+
+      // Automatically compress and resize to max 1280px width, progressive JPEG ~80KB
+      let uploadBuffer = rawBuffer;
+      let contentType = file.type;
+      let ext = path.extname(file.name) || ".jpg";
+
+      try {
+        uploadBuffer = await sharp(rawBuffer)
+          .resize({ width: 1280, withoutEnlargement: true })
+          .jpeg({ quality: 82, progressive: true, mozjpeg: true })
+          .toBuffer();
+        contentType = "image/jpeg";
+        ext = ".jpg";
+      } catch (sharpError) {
+        console.warn("Sharp optimization skipped, using original buffer:", sharpError);
+      }
 
       // Safe filename with extension
-      const ext = path.extname(file.name) || ".jpg";
       const uniqueName = `bike-${Date.now()}-${crypto.randomBytes(4).toString("hex")}${ext}`;
 
       if (supabase) {
         // Direct upload to Supabase Storage bucket 'bikes'
         const { error: uploadError } = await supabase.storage
           .from("bikes")
-          .upload(uniqueName, buffer, {
-            contentType: file.type,
+          .upload(uniqueName, uploadBuffer, {
+            contentType,
             upsert: true,
           });
 
         if (uploadError) {
           console.error("Supabase Storage error:", uploadError);
-          // If bucket doesn't exist, try creating it or fallback
           throw new Error("Supabase upload failed: " + uploadError.message);
         }
 
@@ -69,7 +84,7 @@ export async function POST(req: NextRequest) {
       } else {
         // Local filesystem storage
         const filePath = path.join(uploadsDir, uniqueName);
-        await writeFile(filePath, buffer);
+        await writeFile(filePath, uploadBuffer);
         uploadedUrls.push(`/uploads/bikes/${uniqueName}`);
       }
     }

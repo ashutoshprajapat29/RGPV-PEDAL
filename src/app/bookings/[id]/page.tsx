@@ -155,24 +155,24 @@ export default function BookingPassPage({
   const primaryImage =
     booking.bike?.images?.find((img: any) => img.isPrimary) || booking.bike?.images?.[0];
 
-  const waHelpUrl = `https://wa.me/${ownerWhatsApp}?text=${encodeURIComponent(`Hello! Regarding my RGPV cycle booking (${booking.bookingNumber}) for ${booking.bike?.name}.`)}`;
+  const waHelpUrl = `https://wa.me/${ownerWhatsApp}?text=${encodeURIComponent(`Hi CampusRide! Regarding my bicycle reservation (${booking.bookingNumber}) for ${booking.bike?.name}.`)}`;
 
   return (
-    <div className="min-h-screen bg-neutral-50/70 py-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-[#F8F9FF] text-[#0B1C30] py-10 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Navigation */}
         <div className="flex items-center justify-between text-xs">
           <Link
-            href="/"
-            className="flex items-center gap-1.5 font-semibold text-neutral-600 hover:text-neutral-900 transition-colors"
+            href="/#available-fleet"
+            className="flex items-center gap-1.5 font-bold text-slate-600 hover:text-orange-600 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Return to Cycles</span>
+            <span>Return to CampusRide Fleet</span>
           </Link>
 
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-neutral-200 font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print Slip</span>
@@ -180,27 +180,27 @@ export default function BookingPassPage({
         </div>
 
         {/* Clean Ticket Card */}
-        <div className="bg-white rounded-3xl border border-neutral-200/90 shadow-lg overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-emerald-800 text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-[#0B1C30] text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-200 block">
-                RGPV Campus Cycle Rental Slip
+              <span className="text-[10px] uppercase font-bold tracking-wider text-orange-400 block">
+                CampusRide • Digital Transit Slip
               </span>
-              <h1 className="text-xl font-black">
+              <h1 className="text-xl font-extrabold tracking-tight">
                 {booking.bike?.name}
               </h1>
-              <p className="text-xs text-emerald-100 flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>Pickup: {booking.bike?.location}</span>
+              <p className="text-xs text-slate-300 flex items-center gap-1 mt-0.5">
+                <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                <span>Pickup Stand: {booking.bike?.location}</span>
               </p>
             </div>
 
-            <div className="text-left sm:text-right bg-black/20 px-3.5 py-2 rounded-2xl">
-              <span className="text-[9px] uppercase font-bold text-neutral-300 block">
+            <div className="text-left sm:text-right bg-white/10 px-3.5 py-2 rounded-2xl border border-white/10">
+              <span className="text-[9px] uppercase font-bold text-slate-300 block">
                 Booking Code
               </span>
-              <span className="text-base font-mono font-black text-amber-300">
+              <span className="text-base font-mono font-black text-orange-400">
                 {booking.bookingNumber}
               </span>
             </div>
@@ -348,14 +348,14 @@ export default function BookingPassPage({
             </div>
 
             {/* Financials in ₹ */}
-            <div className="bg-neutral-50 p-3.5 rounded-2xl border border-neutral-100 flex items-center justify-between text-xs">
-              <div className="space-y-0.5 text-neutral-600">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between text-xs">
+              <div className="space-y-0.5 text-slate-600">
                 <p>Rent: <strong>₹{booking.hourlyRateApplied}/hr</strong> × {booking.totalHours} hrs</p>
                 <p>Refundable Deposit: <strong>₹{booking.securityDeposit}</strong></p>
               </div>
               <div className="text-right">
-                <span className="text-[10px] uppercase font-bold text-neutral-400 block">Total Due at Cycle Stand</span>
-                <span className="text-xl font-black text-emerald-700">₹{booking.totalAmount.toFixed(0)}</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Due at Cycle Stand</span>
+                <span className="text-xl font-black text-orange-600">₹{booking.totalAmount.toFixed(0)}</span>
               </div>
             </div>
 
@@ -366,9 +366,9 @@ export default function BookingPassPage({
                   href={waHelpUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-[#0B1C30] hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
                 >
-                  <MessageSquare className="w-4 h-4" />
+                  <MessageSquare className="w-4 h-4 text-[#25D366]" />
                   <span>Message Stand on WhatsApp</span>
                 </a>
 

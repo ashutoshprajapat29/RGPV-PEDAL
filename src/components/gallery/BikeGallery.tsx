@@ -41,6 +41,7 @@ export default function BikeGallery({ images, bikeName }: BikeGalleryProps) {
         <img
           src={currentImage.url}
           alt={currentImage.caption || `${bikeName} view ${activeIndex + 1}`}
+          decoding="async"
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
 
@@ -106,13 +107,15 @@ export default function BikeGallery({ images, bikeName }: BikeGalleryProps) {
               onClick={() => setActiveIndex(idx)}
               className={`relative flex-shrink-0 w-20 h-14 sm:w-24 sm:h-16 rounded-xl overflow-hidden border-2 transition-all ${
                 activeIndex === idx
-                  ? "border-emerald-600 ring-2 ring-emerald-500/30 scale-100"
+                  ? "border-orange-600 ring-2 ring-orange-500/30 scale-100"
                   : "border-transparent opacity-70 hover:opacity-100"
               }`}
             >
               <img
                 src={img.url}
                 alt={`Thumbnail ${idx + 1}`}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
               {img.isPrimary && (

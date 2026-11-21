@@ -23,13 +23,17 @@ interface BikeDetails {
 export default function HourlyBookingWidget({
   bike,
   whatsappPhone,
+  initialBookedHours = [],
+  initialDate,
 }: {
   bike: BikeDetails;
   whatsappPhone?: string;
+  initialBookedHours?: number[];
+  initialDate?: string;
 }) {
   const router = useRouter();
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = initialDate || new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const currentHour = new Date().getHours();
@@ -53,24 +57,14 @@ export default function HourlyBookingWidget({
   const [timeError, setTimeError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
-  // Availability state
-  const [bookedHours, setBookedHours] = useState<number[]>([]);
+  // Availability state (pre-initialized with server-computed hours for instant render)
+  const [bookedHours, setBookedHours] = useState<number[]>(initialBookedHours);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch only if user selects a different date than initial
   useEffect(() => {
-    async function loadSettings() {
-      try {
-        const res = await fetch("/api/settings");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.whatsappPhone) setOwnerWhatsApp(data.whatsappPhone);
-        }
-      } catch {}
-    }
-    loadSettings();
-  }, []);
+    if (selectedDate === todayStr && initialBookedHours.length > 0) return;
 
-  useEffect(() => {
     async function loadAvailability() {
       try {
         const res = await fetch(`/api/bikes/${bike.id}/availability?date=${selectedDate}`);
@@ -83,7 +77,7 @@ export default function HourlyBookingWidget({
       }
     }
     loadAvailability();
-  }, [bike.id, selectedDate]);
+  }, [bike.id, selectedDate, todayStr, initialBookedHours]);
 
   const totalHours = Math.max(1, endHour - startHour);
 
@@ -202,9 +196,9 @@ export default function HourlyBookingWidget({
         return `${dh}:00 ${p}`;
       };
 
-      const waMessage = `🚲 *RGPV Campus Bicycle Booking Request*
+      const waMessage = `🚲 *CampusRide - RGPV Bicycle Booking Request*
 ---------------------------------------
-• *Status:* ⏳ Pending Stand Confirmation
+• *Status:* ⏳ Stand Confirmation Required
 • *Bicycle:* ${bike.name}
 • *Booking Code:* ${bookingNumber}
 • *Student Name:* ${trimmedName}
@@ -229,21 +223,21 @@ Please confirm cycle availability for this booking. Thank you!`;
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-neutral-200/90 shadow-md p-6 space-y-5">
-      <div className="border-b border-neutral-100 pb-3 flex items-center justify-between">
+    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-6 space-y-5">
+      <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-            Hourly Booking
+          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200/60">
+            Hourly Transit Booking
           </span>
-          <h3 className="text-lg font-extrabold text-neutral-900 mt-1">
+          <h3 className="text-lg font-extrabold text-[#0B1C30] mt-1">
             Book on WhatsApp
           </h3>
         </div>
         <div className="text-right">
-          <span className="text-2xl font-black text-neutral-900">
+          <span className="text-2xl font-black text-[#0B1C30]">
             ₹{bike.hourlyRate.toFixed(0)}
           </span>
-          <span className="text-[10px] font-semibold text-neutral-500 block -mt-1">
+          <span className="text-[10px] font-semibold text-slate-500 block -mt-1">
             per hour
           </span>
         </div>
@@ -252,7 +246,7 @@ Please confirm cycle availability for this booking. Thank you!`;
       <form onSubmit={handleBookingSubmit} noValidate className="space-y-4">
         {/* Date */}
         <div>
-          <label className="block text-xs font-bold text-neutral-700 mb-1">
+          <label className="block text-xs font-bold text-slate-700 mb-1">
             Rental Date *
           </label>
           <input
@@ -260,7 +254,7 @@ Please confirm cycle availability for this booking. Thank you!`;
             min={todayStr}
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500"
             required
           />
         </div>
@@ -268,7 +262,7 @@ Please confirm cycle availability for this booking. Thank you!`;
         {/* Start and Return Hour */}
         <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
+            <label className="block text-xs font-bold text-slate-700 mb-1">
               Pickup Time *
             </label>
             <select
@@ -279,7 +273,7 @@ Please confirm cycle availability for this booking. Thank you!`;
                 if (endHour <= newStart) setEndHour(newStart + 1);
                 setTimeError(null);
               }}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-300 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               {Array.from({ length: 15 }, (_, i) => i + 7).map((h) => {
                 const isBooked = bookedHours.includes(h);
@@ -295,7 +289,7 @@ Please confirm cycle availability for this booking. Thank you!`;
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
+            <label className="block text-xs font-bold text-slate-700 mb-1">
               Return Time *
             </label>
             <select
@@ -304,7 +298,7 @@ Please confirm cycle availability for this booking. Thank you!`;
                 setEndHour(Number(e.target.value));
                 setTimeError(null);
               }}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-300 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               {Array.from({ length: 15 }, (_, i) => i + 8).map((h) => {
                 const period = h >= 12 ? "PM" : "AM";
@@ -333,10 +327,10 @@ Please confirm cycle availability for this booking. Thank you!`;
         )}
 
         {/* Student Details */}
-        <div className="space-y-3 pt-2 border-t border-neutral-100">
+        <div className="space-y-3 pt-2 border-t border-slate-100">
           <div>
             <div className="flex justify-between items-baseline mb-1">
-              <label className="text-xs font-bold text-neutral-700">
+              <label className="text-xs font-bold text-slate-700">
                 Your Full Name *
               </label>
               {nameError && (
@@ -354,7 +348,7 @@ Please confirm cycle availability for this booking. Thank you!`;
               className={`w-full px-3.5 py-2.5 rounded-xl border text-xs focus:outline-none transition-colors ${
                 nameError
                   ? "border-red-400 bg-red-50/20 focus:ring-2 focus:ring-red-400"
-                  : "border-neutral-300 focus:ring-2 focus:ring-emerald-500"
+                  : "border-slate-300 focus:ring-2 focus:ring-orange-500"
               }`}
               required
             />
@@ -362,7 +356,7 @@ Please confirm cycle availability for this booking. Thank you!`;
 
           <div>
             <div className="flex justify-between items-baseline mb-1">
-              <label className="text-xs font-bold text-neutral-700">
+              <label className="text-xs font-bold text-slate-700">
                 WhatsApp Mobile Number *
               </label>
               {phoneError && (
@@ -370,7 +364,7 @@ Please confirm cycle availability for this booking. Thank you!`;
               )}
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-xs font-bold text-neutral-400">+91</span>
+              <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">+91</span>
               <input
                 type="tel"
                 maxLength={10}
@@ -380,7 +374,7 @@ Please confirm cycle availability for this booking. Thank you!`;
                 className={`w-full pl-11 pr-3.5 py-2.5 rounded-xl border text-xs focus:outline-none transition-colors ${
                   phoneError
                     ? "border-red-400 bg-red-50/20 focus:ring-2 focus:ring-red-400"
-                    : "border-neutral-300 focus:ring-2 focus:ring-emerald-500"
+                    : "border-slate-300 focus:ring-2 focus:ring-orange-500"
                 }`}
                 required
               />
@@ -388,7 +382,7 @@ Please confirm cycle availability for this booking. Thank you!`;
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
+            <label className="block text-xs font-bold text-slate-700 mb-1">
               College Roll No. / Department (Optional)
             </label>
             <input
@@ -397,28 +391,28 @@ Please confirm cycle availability for this booking. Thank you!`;
               placeholder="e.g. 0101CS221045 or UIT RGPV"
               value={studentRollNo}
               onChange={(e) => setStudentRollNo(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none"
             />
           </div>
         </div>
 
         {/* Cost Summary in ₹ */}
-        <div className="bg-neutral-50 rounded-2xl p-3.5 space-y-2 border border-neutral-200/70 text-xs">
-          <div className="flex justify-between text-neutral-600">
+        <div className="bg-slate-50 rounded-2xl p-3.5 space-y-2 border border-slate-200/80 text-xs">
+          <div className="flex justify-between text-slate-600">
             <span>Duration ({totalHours} hr{totalHours > 1 ? "s" : ""} × ₹{bike.hourlyRate.toFixed(0)})</span>
-            <span className="font-bold text-neutral-900">₹{baseRentalCost}</span>
+            <span className="font-bold text-[#0B1C30]">₹{baseRentalCost}</span>
           </div>
 
           {securityDeposit > 0 && (
-            <div className="flex justify-between text-neutral-600">
+            <div className="flex justify-between text-slate-600">
               <span>Refundable Deposit (Returned at stand)</span>
-              <span className="font-bold text-neutral-900">₹{securityDeposit}</span>
+              <span className="font-bold text-[#0B1C30]">₹{securityDeposit}</span>
             </div>
           )}
 
-          <div className="border-t border-neutral-200 pt-2 flex justify-between items-baseline">
-            <span className="font-bold text-neutral-900">Total at Cycle Stand (UPI / Cash)</span>
-            <span className="text-xl font-black text-emerald-700">₹{grandTotal}</span>
+          <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline">
+            <span className="font-bold text-[#0B1C30]">Total at Cycle Stand (UPI / Cash)</span>
+            <span className="text-xl font-black text-orange-600">₹{grandTotal}</span>
           </div>
         </div>
 
@@ -434,15 +428,15 @@ Please confirm cycle availability for this booking. Thank you!`;
           disabled={isSubmitting || hasConflict}
           className={`w-full py-3 px-4 rounded-2xl font-bold text-sm text-white shadow transition-all flex items-center justify-center gap-2 ${
             hasConflict || isSubmitting
-              ? "bg-neutral-300 cursor-not-allowed"
-              : "bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] shadow-emerald-600/20"
+              ? "bg-slate-300 cursor-not-allowed"
+              : "bg-orange-600 hover:bg-orange-700 active:scale-[0.99] shadow-orange-600/30"
           }`}
         >
           <MessageSquare className="w-4 h-4 fill-white" />
           <span>{isSubmitting ? "Checking..." : `Book on WhatsApp (₹${grandTotal})`}</span>
         </button>
 
-        <p className="text-[11px] text-neutral-400 text-center">
+        <p className="text-[11px] text-slate-400 text-center">
           Tap button to send prefilled details to the cycle stand manager on WhatsApp.
         </p>
       </form>

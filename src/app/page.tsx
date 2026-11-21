@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getAppSettings } from "@/lib/settings";
 import BikeCard from "@/components/BikeCard";
 import {
   Bike,
   Clock,
   ShieldCheck,
   MapPin,
+  MessageSquare,
+  ArrowRight,
+  Receipt,
+  Search,
+  CheckCircle2,
+  Calendar,
   Sparkles,
 } from "lucide-react";
 
@@ -35,15 +42,21 @@ export default async function HomePage({
     ];
   }
 
-  const bikes = await prisma.bike.findMany({
-    where,
-    include: {
-      images: {
-        orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+  const [bikes, settings] = await Promise.all([
+    prisma.bike.findMany({
+      where,
+      include: {
+        images: {
+          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    getAppSettings(),
+  ]);
+
+  const whatsappPhone = settings?.whatsappPhone || "919876543210";
+  const cleanPhone = whatsappPhone.replace(/\D/g, "");
 
   const categories = [
     { label: "All Cycles", value: "ALL" },
@@ -54,132 +67,258 @@ export default async function HomePage({
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-50/60 pb-16">
-      {/* Clean Hero for RGPV Bhopal */}
-      <section className="bg-white border-b border-neutral-200/80 pt-10 pb-12 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto text-center space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>RGPV Bhopal Campus Cycling</span>
+    <div className="flex flex-col w-full bg-[#F8F9FF] min-h-screen text-[#0B1C30]">
+      {/* 1. CLEAN HERO SECTION */}
+      <section className="w-full pt-10 pb-14 sm:py-16 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          {/* Campus Tag */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200/80 text-orange-800 text-xs font-bold w-fit shadow-xs">
+            <span className="text-sm">🏛️</span>
+            <span>UIT RGPV Gandhi Nagar Campus, Bhopal</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-neutral-900 tracking-tight leading-tight">
+          {/* Heading */}
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#0B1C30] tracking-tight leading-[1.12]">
             Hourly Bicycle Rentals at <br />
-            <span className="text-emerald-600">RGPV Bhopal Campus</span>
+            <span className="text-orange-600">Chandrashekhar Boys Hostel</span>
           </h1>
 
-          <p className="text-sm sm:text-base text-neutral-600 max-w-xl mx-auto leading-relaxed">
-            Quick, affordable, and green commute between Main Gate, UIT Academic Blocks, Library, and Hostels. Book instantly on WhatsApp.
+          {/* Subtext */}
+          <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            Quick, affordable, and eco-friendly commute between hostels, academic blocks, library, and canteen. Book your hourly slot online and pick up your cycle directly at the Chandrashekhar Hostel stand.
           </p>
 
-          {/* Quick Info Badges */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-xs font-semibold text-neutral-600">
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-emerald-600" />
+          {/* Key Feature Chips */}
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs font-semibold text-slate-700">
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+              <MapPin className="w-4 h-4 text-orange-600" />
+              <span>Stand: Chandrashekhar Boys Hostel</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+              <Clock className="w-4 h-4 text-orange-600" />
               <span>Starting from ₹8 / hour</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+              <ShieldCheck className="w-4 h-4 text-orange-600" />
               <span>UPI / Cash at Stand</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-emerald-600" />
-              <span>Cycle Stands at Main Gate & Hostels</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Cycle Catalog */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-8 space-y-6">
-        {/* Category Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200/80 pb-4">
-          <div>
-            <h2 className="text-xl font-extrabold text-neutral-900">
-              Available Bicycles ({bikes.length})
-            </h2>
-            <p className="text-xs text-neutral-500">
-              Select any cycle to view photos and reserve your hourly slot.
-            </p>
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {categories.map((cat) => {
-              const isActive = selectedType === cat.value;
-              return (
-                <Link
-                  key={cat.value}
-                  href={cat.value === "ALL" ? "/" : `/?type=${cat.value}`}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                    isActive
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-100"
-                  }`}
-                >
-                  {cat.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Cycle Grid */}
-        {bikes.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl border border-neutral-200 text-center space-y-2 text-xs text-neutral-500">
-            <p className="font-bold text-neutral-800 text-sm">No bicycles found in this category</p>
-            <Link href="/" className="inline-block mt-2 px-3.5 py-1.5 bg-neutral-900 text-white rounded-xl text-xs font-semibold">
-              View All Cycles
+          {/* Primary Action Buttons */}
+          <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="#available-fleet"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-sm shadow-orange-600/30 transition-all transform hover:-translate-y-0.5"
+            >
+              <Bike className="w-4 h-4" />
+              <span>Browse Available Cycles ({bikes.length})</span>
             </Link>
+
+            <a
+              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent("Hi! I want to check cycle availability at Chandrashekhar Boys Hostel Stand.")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold border border-slate-200 shadow-xs transition-colors"
+            >
+              <MessageSquare className="w-4 h-4 text-[#25D366]" />
+              <span>WhatsApp Stand Manager</span>
+            </a>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {bikes.map((bike) => (
-              <BikeCard key={bike.id} bike={bike} />
-            ))}
-          </div>
-        )}
+        </div>
       </section>
 
-      {/* Clean 3-Step Guide */}
-      <section id="how-it-works" className="max-w-6xl mx-auto px-4 sm:px-6 mt-16">
-        <div className="text-center space-y-1 mb-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded">
-            Simple & Fast
-          </span>
-          <h2 className="text-2xl font-black text-neutral-900">
-            How Campus Rental Works
-          </h2>
+      {/* 2. CYCLE STAND DETAILS CARD */}
+      <section id="stand-location" className="w-full pb-10 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            <div className="md:col-span-2 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-600">
+                <MapPin className="w-4 h-4" />
+                <span>Cycle Pickup & Return Stand</span>
+              </div>
+              <h2 className="text-xl font-extrabold text-[#0B1C30]">
+                Chandrashekhar Azad Boys Hostel (Hostel 1)
+              </h2>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Located right at the main entrance portico of Chandrashekhar Boys Hostel, near the mess area. Cycles are inspected and dispatched directly by the hostel stand manager.
+              </p>
+              <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-orange-600" />
+                  <strong>Timings:</strong> 6:00 AM – 10:30 PM (Daily)
+                </span>
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-orange-600" />
+                  <strong>Verification:</strong> RGPV Student ID / Enrollment No.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                Current Fleet at Stand
+              </span>
+              <div className="text-3xl font-black text-orange-600">
+                {bikes.length} {bikes.length === 1 ? "Cycle" : "Cycles"}
+              </div>
+              <Link
+                href="#available-fleet"
+                className="inline-block text-xs font-bold text-orange-700 hover:underline"
+              >
+                View Available Models ↓
+              </Link>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200/90 shadow-sm space-y-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-extrabold flex items-center justify-center text-sm">
-              1
+      {/* 3. CYCLE CATALOG */}
+      <section id="available-fleet" className="w-full py-10 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-200 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-extrabold text-[#0B1C30]">
+                  Available Bicycles ({bikes.length})
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Select any cycle to view photos, specs, and reserve your hourly slot.
+              </p>
             </div>
-            <h3 className="font-bold text-neutral-900 text-sm">Choose Cycle & Hours</h3>
-            <p className="text-xs text-neutral-500 leading-relaxed">
-              Pick the cycle that suits you (Single Speed, Geared MTB, or Electric) and choose your rental timing.
-            </p>
+
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {categories.map((c) => {
+                const isActive = selectedType === c.value;
+                return (
+                  <Link
+                    key={c.value}
+                    href={`/?type=${c.value}#available-fleet`}
+                    scroll={false}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-orange-600 text-white shadow-xs shadow-orange-600/30"
+                        : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
+                    }`}
+                  >
+                    {c.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200/90 shadow-sm space-y-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-extrabold flex items-center justify-center text-sm">
-              2
+          {/* Grid */}
+          {bikes.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center space-y-3">
+              <Bike className="w-10 h-10 text-slate-300 mx-auto" />
+              <h3 className="font-bold text-slate-700 text-sm">No Cycles in this Category Right Now</h3>
+              <p className="text-xs text-slate-500">
+                All cycles in this category might be currently rented or in service.
+              </p>
+              <Link
+                href="/#available-fleet"
+                className="inline-block px-3.5 py-1.5 rounded-xl bg-orange-600 text-white font-bold text-xs"
+              >
+                View All Cycles
+              </Link>
             </div>
-            <h3 className="font-bold text-neutral-900 text-sm">Send WhatsApp Request</h3>
-            <p className="text-xs text-neutral-500 leading-relaxed">
-              Click &apos;Book on WhatsApp&apos; to send your prefilled booking slip directly to the stand manager.
-            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {bikes.map((bike) => (
+                <BikeCard key={bike.id} bike={bike as any} whatsappPhone={whatsappPhone} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 4. HOW IT WORKS (CLEAN 3 STEPS) */}
+      <section id="how-it-works" className="w-full py-12 bg-slate-100/60 border-y border-slate-200/80 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="text-center space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600">
+              Simple 3-Step Process
+            </span>
+            <h2 className="text-2xl font-extrabold text-[#0B1C30]">
+              How to Rent a Cycle at Chandrashekhar Hostel
+            </h2>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-neutral-200/90 shadow-sm space-y-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-extrabold flex items-center justify-center text-sm">
-              3
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {/* Step 1 */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 font-extrabold text-sm flex items-center justify-center border border-orange-200">
+                1
+              </div>
+              <h3 className="font-bold text-sm text-[#0B1C30]">Choose Cycle & Timing</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Browse our fleet above, pick your preferred bicycle, and select your pickup and return hours.
+              </p>
             </div>
-            <h3 className="font-bold text-neutral-900 text-sm">Collect at Cycle Stand & Pay</h3>
-            <p className="text-xs text-neutral-500 leading-relaxed">
-              Collect cycle from the campus cycle stand and pay via UPI (GPay/PhonePe) or Cash. Return when done!
-            </p>
+
+            {/* Step 2 */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 font-extrabold text-sm flex items-center justify-center border border-orange-200">
+                2
+              </div>
+              <h3 className="font-bold text-sm text-[#0B1C30]">Send WhatsApp Request</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Click "Book on WhatsApp" to send your prefilled booking slip directly to the stand manager.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 font-extrabold text-sm flex items-center justify-center border border-orange-200">
+                3
+              </div>
+              <h3 className="font-bold text-sm text-[#0B1C30]">Pick Up & Ride</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Visit Chandrashekhar Hostel stand, show your booking code, pay via UPI or Cash, and collect your cycle.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. BOOKING SLIP LOOKUP WIDGET */}
+      <section className="w-full py-10 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+            <div className="md:col-span-6 space-y-1">
+              <div className="flex items-center gap-1.5 text-orange-600 text-[11px] font-bold uppercase tracking-wider">
+                <Receipt className="w-4 h-4" />
+                <span>Self-Service Portal</span>
+              </div>
+              <h3 className="text-lg font-extrabold text-[#0B1C30]">
+                Already Have a Reservation?
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Enter your 10-digit mobile number or booking code to view your voucher or check status.
+              </p>
+            </div>
+
+            <div className="md:col-span-6">
+              <form action="/bookings" method="GET" className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input
+                    name="q"
+                    type="text"
+                    placeholder="Enter Mobile No. or BK-..."
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 text-xs font-semibold text-[#0B1C30] border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs transition-colors shrink-0 shadow-xs"
+                >
+                  Lookup Slip
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </section>

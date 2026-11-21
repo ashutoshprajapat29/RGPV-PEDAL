@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Bike, MapPin, MessageSquare, Phone } from "lucide-react";
+import { Bike, MapPin, MessageSquare, Clock, ShieldCheck, IndianRupee } from "lucide-react";
 
 export default function Footer({ initialPhone }: { initialPhone?: string }) {
   const [whatsappPhone, setWhatsappPhone] = useState(
@@ -19,71 +19,80 @@ export default function Footer({ initialPhone }: { initialPhone?: string }) {
       })
       .catch(() => {});
   }, []);
+
   return (
-    <footer className="bg-neutral-900 text-neutral-400 border-t border-neutral-800 text-xs">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    <footer className="w-full bg-[#0B1C30] text-slate-300 border-t border-slate-800 text-xs mt-auto">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Brand info */}
+          {/* Brand Info */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-white">
-              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
-                <Bike className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 text-white">
+              <div className="w-8 h-8 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-sm shadow-orange-600/30">
+                <Bike className="w-5 h-5 stroke-[2.2]" />
               </div>
-              <span className="font-extrabold text-base">RGPV Pedal</span>
+              <span className="font-extrabold text-base tracking-tight">
+                Campus<span className="text-orange-500">Ride</span>
+              </span>
             </div>
-            <p className="text-neutral-400 leading-relaxed text-xs">
-              Affordable, eco-friendly hourly bicycle rentals for students, faculty, and visitors at Rajiv Gandhi Proudyogiki Vishwavidyalaya (RGPV), Airport Road, Bhopal.
+            <p className="text-slate-400 leading-relaxed text-xs">
+              Affordable, eco-friendly hourly bicycle rentals for students and staff at Rajiv Gandhi Proudyogiki Vishwavidyalaya (RGPV), Bhopal.
             </p>
+            <div className="text-[11px] text-slate-500">
+              Clean Campus · Green Mobility
+            </div>
           </div>
 
-          {/* Campus Pickup Cycle Stands */}
-          <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">
-              Campus Cycle Stands
+          {/* Stand Location & Hours */}
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+              Cycle Stand Details
             </h4>
-            <ul className="space-y-2 text-xs">
-              <li className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>RGPV Main Gate Cycle Stand</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>UIT Academic Block Cycle Stand</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>Central Library Cycle Stand</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>Hostel Cluster Cycle Stand</span>
-              </li>
-            </ul>
+            <div className="space-y-2 text-slate-400">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Chandrashekhar Boys Hostel Stand</strong><br />
+                  Hostel Portico, UIT RGPV Campus,<br />
+                  Airport Road, Gandhi Nagar, Bhopal - 462033
+                </span>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <Clock className="w-4 h-4 text-orange-400 shrink-0" />
+                <span><strong>Timings:</strong> 6:00 AM – 10:30 PM (All Days)</span>
+              </div>
+            </div>
           </div>
 
-          {/* How to Pay & Contact */}
-          <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">
+          {/* Payment & Contact */}
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
               Payment & Support
             </h4>
-            <p className="text-xs text-neutral-400 mb-3 leading-relaxed">
-              Pay easily at the pickup stand using <strong>UPI (PhonePe, Google Pay, Paytm)</strong> or <strong>Cash</strong>. Book directly on WhatsApp for instant confirmation.
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Pay at the hostel stand using <strong>UPI (GPay / PhonePe / Paytm)</strong> or <strong>Cash</strong>. Book online and confirm instantly on WhatsApp.
             </p>
-            <a
-              href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent("Hello! I need assistance with a cycle rental at RGPV Bhopal.")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-semibold transition-colors"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Contact on WhatsApp</span>
-            </a>
+            <div className="pt-1">
+              <a
+                href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent("Hi! I need assistance with a cycle rental at Chandrashekhar Boys Hostel.")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-colors shadow-sm"
+              >
+                <MessageSquare className="w-4 h-4 text-[#25D366]" />
+                <span>WhatsApp Stand Help</span>
+              </a>
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-neutral-500 gap-3">
-          <p>© 2026 RGPV Pedal · Bhopal, Madhya Pradesh</p>
-          <p>Clean Campus · Green Mobility</p>
+        {/* Bottom Bar */}
+        <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-3">
+          <p>© 2026 CampusRide · RGPV Bhopal. All rights reserved.</p>
+          <div className="flex items-center gap-4 text-slate-400">
+            <Link href="/#how-it-works" className="hover:text-white transition-colors">How It Works</Link>
+            <Link href="/bookings" className="hover:text-white transition-colors">My Booking Slip</Link>
+            <Link href="/#stand-location" className="hover:text-white transition-colors">Stand Info</Link>
+          </div>
         </div>
       </div>
     </footer>

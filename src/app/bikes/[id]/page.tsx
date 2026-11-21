@@ -11,6 +11,45 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+async function getInitialBookedHours(bikeId: string, dateStr: string) {
+  try {
+    const dayStart = new Date(`${dateStr}T00:00:00+05:30`);
+    const dayEnd = new Date(`${dateStr}T23:59:59.999+05:30`);
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        bikeId,
+        startTime: { lte: dayEnd },
+        endTime: { gte: dayStart },
+        OR: [
+          { status: { in: ["CONFIRMED", "ACTIVE"] } },
+          { status: "PENDING", createdAt: { gte: thirtyMinutesAgo } },
+        ],
+      },
+      select: { startTime: true, endTime: true },
+    });
+
+    const bookedHours: number[] = [];
+    for (const b of bookings) {
+      const bStart = new Date(b.startTime).getTime();
+      const bEnd = new Date(b.endTime).getTime();
+
+      for (let h = 0; h < 24; h++) {
+        const slotStart = new Date(`${dateStr}T${String(h).padStart(2, "0")}:00:00+05:30`).getTime();
+        const slotEnd = new Date(`${dateStr}T${String(h + 1).padStart(2, "0")}:00:00+05:30`).getTime();
+
+        if (bStart < slotEnd && bEnd > slotStart) {
+          if (!bookedHours.includes(h)) bookedHours.push(h);
+        }
+      }
+    }
+    return bookedHours.sort((a, b) => a - b);
+  } catch {
+    return [];
+  }
+}
+
 export default async function BikeDetailPage({
   params,
 }: {
@@ -18,7 +57,10 @@ export default async function BikeDetailPage({
 }) {
   const { id } = await params;
 
-  const [bike, settings] = await Promise.all([
+  // Format today's date in IST
+  const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+
+  const [bike, settings, initialBookedHours] = await Promise.all([
     prisma.bike.findUnique({
       where: { id },
       include: {
@@ -28,6 +70,7 @@ export default async function BikeDetailPage({
       },
     }),
     getAppSettings(),
+    getInitialBookedHours(id, todayStr),
   ]);
 
   if (!bike) {
@@ -35,19 +78,19 @@ export default async function BikeDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50/60 pb-16">
+    <div className="min-h-screen bg-[#F8F9FF] text-[#0B1C30] pb-16">
       {/* Top Breadcrumb */}
-      <div className="bg-white border-b border-neutral-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between text-xs">
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between text-xs">
           <Link
-            href="/"
-            className="flex items-center gap-1.5 text-neutral-600 hover:text-neutral-900 font-semibold transition-colors"
+            href="/#available-fleet"
+            className="flex items-center gap-1.5 text-slate-600 hover:text-orange-600 font-bold transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to All Cycles</span>
+            <span>Back to CampusRide Fleet</span>
           </Link>
-          <div className="text-neutral-500">
-            <span>RGPV Fleet</span> / <strong className="text-neutral-800">{bike.name}</strong>
+          <div className="text-slate-500 font-medium">
+            <span>Campus Fleet</span> / <strong className="text-[#0B1C30]">{bike.name}</strong>
           </div>
         </div>
       </div>
@@ -65,7 +108,7 @@ export default async function BikeDetailPage({
             <div className="bg-white p-5 sm:p-6 rounded-3xl border border-neutral-200/90 shadow-sm space-y-5">
               <div>
                 <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200/60">
                     {bike.type}
                   </span>
                   {bike.isElectric && (
@@ -74,18 +117,18 @@ export default async function BikeDetailPage({
                       <span>Electric Assist</span>
                     </span>
                   )}
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-600">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
                     {bike.brand} · {bike.model}
                   </span>
                 </div>
 
-                <h1 className="text-2xl font-black text-neutral-900">
+                <h1 className="text-2xl font-black text-[#0B1C30]">
                   {bike.name}
                 </h1>
 
-                <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-1.5">
-                  <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                  <span>Pickup Point: <strong className="text-neutral-800">{bike.location}</strong></span>
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1.5">
+                  <MapPin className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                  <span>Pickup Point: <strong className="text-[#0B1C30]">{bike.location}</strong></span>
                 </div>
               </div>
 
@@ -105,41 +148,41 @@ export default async function BikeDetailPage({
                   Specifications
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                  <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-100">
-                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Hourly Rate</span>
-                    <span className="text-emerald-700 font-extrabold text-sm">₹{bike.hourlyRate.toFixed(0)}/hr</span>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Hourly Rate</span>
+                    <span className="text-orange-600 font-extrabold text-sm">₹{bike.hourlyRate.toFixed(0)}/hr</span>
                   </div>
 
-                  <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-100">
-                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Deposit</span>
-                    <span className="text-neutral-800 font-extrabold text-sm">₹{bike.securityDeposit.toFixed(0)}</span>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Deposit</span>
+                    <span className="text-[#0B1C30] font-extrabold text-sm">₹{bike.securityDeposit.toFixed(0)}</span>
                   </div>
 
-                  <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-100">
-                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Gears</span>
-                    <span className="text-neutral-800 font-extrabold text-sm">{bike.gearCount} Speed</span>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Gears</span>
+                    <span className="text-[#0B1C30] font-extrabold text-sm">{bike.gearCount} Speed</span>
                   </div>
 
-                  <div className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-100">
-                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Frame</span>
-                    <span className="text-neutral-800 font-extrabold text-sm">{bike.frameSize} Size</span>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Frame</span>
+                    <span className="text-[#0B1C30] font-extrabold text-sm">{bike.frameSize} Size</span>
                   </div>
                 </div>
               </div>
 
               {/* Campus Rental Notes */}
-              <div className="border-t border-neutral-100 pt-3 space-y-1.5 text-xs text-neutral-600">
+              <div className="border-t border-slate-100 pt-3 space-y-2 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-orange-600 shrink-0" />
                   <span>Free cycle lock provided with every rental</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-orange-600 shrink-0" />
                   <span>Payment accepted at cycle stand via UPI (PhonePe/Google Pay/Paytm) or Cash</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                  <span>Deposit 100% refunded when returned to any campus cycle stand</span>
+                  <CheckCircle2 className="w-4 h-4 text-orange-600 shrink-0" />
+                  <span>Deposit 100% refunded upon cycle return at Chandrashekhar Hostel stand</span>
                 </div>
               </div>
             </div>
@@ -157,6 +200,8 @@ export default async function BikeDetailPage({
                 status: bike.status,
               }}
               whatsappPhone={settings.whatsappPhone}
+              initialBookedHours={initialBookedHours}
+              initialDate={todayStr}
             />
           </div>
         </div>
